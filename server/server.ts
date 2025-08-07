@@ -2,8 +2,8 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import { registerSocketHandlers } from './socketHandler';
-import { gameManager } from "./game/GameManager";
+import { IncomingEventHandler } from './events/IncomingEventHandler';
+import { gameManager } from "./GameManager";
 
 
 const app = express();
