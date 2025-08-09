@@ -1,10 +1,11 @@
 // src/Game.ts
-import { EventEmitter } from "events"
 import { Player, PlayerId } from "./Player"
 import { RoundDeck, IRoundCard } from "./decks/RoundDeck"
-import { ActionCardName, ActionDeck, IActionCard } from "./decks/ActionDeck"
+import { ActionCardName, ActionDeck, ActionCard } from "./decks/ActionDeck"
 import { shuffleArray } from "../utils"
-import { ActionCardInput, ActionCardResult } from "@smoke-and-lead/shared"
+import { ActionCardInput, ActionCardResult } from "@smoke-and-lead/shared/src/ActionCards"
+import { SocketEventEmitter } from "../events/ServerEventEmitter"
+import { Server } from "socket.io"
 
 export class InvalidActionError extends Error {
   constructor(message: string) {
@@ -13,7 +14,7 @@ export class InvalidActionError extends Error {
   }
 }
 
-export class GameModel extends EventEmitter {
+export class GameModel extends SocketEventEmitter {
   private hostId: PlayerId
   private activePlayers: PlayerId[] = [] // Will keep track of the order of players, it will be shuffled on game start
   private spectators: Set<PlayerId> = new Set()
@@ -26,12 +27,12 @@ export class GameModel extends EventEmitter {
 
   actionDeck: ActionDeck = new ActionDeck()
   roundsDeck: RoundDeck = new RoundDeck()
-  actionDiscards: IActionCard[] = []
+  actionDiscards: ActionCard[] = []
   chambers: Map<number, IRoundCard> = new Map()
   playerHands: Map<PlayerId, Player> = new Map()
 
-  constructor(hostId: PlayerId) {
-    super()
+  constructor(io: Server, hostId: PlayerId) {
+    super(io)
     this.hostId = hostId
     this.activePlayers.push(hostId)
   }
@@ -40,7 +41,7 @@ export class GameModel extends EventEmitter {
   joinGame(playerId: PlayerId) {
     if (this.isStarted && this.activePlayers.length < 6) {
       this.activePlayers.push(playerId)
-      // activePlayeJoined event
+      // activePlayerJoined event
     } else {
       this.spectators.add(playerId)
       // spectatorJoined event

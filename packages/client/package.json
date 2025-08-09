@@ -10,5 +10,9 @@
   "devDependencies": {
     "@types/react": "^18.3.23",
     "vite": "^4.0.0"
+  },
+  "scripts": {
+    "build": "tsc && vite build",
+    "dev": "vite"
   }
 }

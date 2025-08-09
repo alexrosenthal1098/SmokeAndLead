@@ -1,7 +1,12 @@
 export type ActionCardInput = 
-  | { type: 'peek', chamber: number }
-  | { type: 'swap', chamber1: number, chamber2: number }
+  | { type: 'peek', data: { chamber: number } }
+  | { type: 'swap', data: { chamber1: number, chamber2: number } }
 
 export type ActionCardResult = 
-  | { round: string }
-  | { }
+  | { type: 'peek', data: { round: string } }
+  | { type: 'swap', data: { }}
+
+export type ExtractCardData<
+  T extends ActionCardInput | ActionCardResult,
+  U extends T["type"]
+> = Extract<T, { type: U }>["data"]

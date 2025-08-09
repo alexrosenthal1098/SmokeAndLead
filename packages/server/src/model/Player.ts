@@ -1,14 +1,14 @@
-import { ActionCardInput, ActionCardResult } from "@smoke-and-lead/shared"
+import { ActionCardInput, ActionCardResult } from "@smoke-and-lead/shared/src/ActionCards"
 import { ActionCardName } from "./decks/ActionDeck"
-import { IActionCard } from "./decks/ActionDeck"
+import { ActionCard } from "./decks/ActionDeck"
 import { GameModel, InvalidActionError } from "./GameModel"
 
 export type PlayerId = String
 
 export class Player {
-  private cards: Map<ActionCardName, IActionCard> = new Map()
+  private cards: Map<ActionCardName, ActionCard> = new Map()
 
-  giveCard(card: IActionCard) {
+  giveCard(card: ActionCard) {
     this.cards.set(card.name, card)
   }
 
