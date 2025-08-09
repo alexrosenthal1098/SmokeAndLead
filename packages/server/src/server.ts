@@ -14,40 +14,42 @@ export const io = new Server(server, {
 })
 
 io.use((socket: Socket, next) => {
-  const { playerId, connectToken } = socket.handshake.auth;
-  
-  if (!playerId || typeof playerId !== 'string') {
-    return next(new Error('Player ID is required'));
+  const { playerId, connectToken } = socket.handshake.auth
+
+  if (!playerId || typeof playerId !== "string") {
+    return next(new Error("Player ID is required"))
   }
   if (playerId.length < 2 || playerId.length > 20) {
-    return next(new Error('Player ID must be between 2 and 20 characters.'));
+    return next(new Error("Player ID must be between 2 and 20 characters."))
   }
 
-  
-  let session = sessionManager.createOrRestoreSession(socket, playerId, connectToken)
+  const session = sessionManager.createOrRestoreSession(
+    socket,
+    playerId,
+    connectToken
+  )
   if (!session) {
     return next(new Error("Player ID is taken."))
   } else {
-    socket.data.playerId = playerId; 
+    socket.data.playerId = playerId
     socket.data.connectToken = session.connectToken
     next()
   }
-});
+})
 
-io.on('connection', (socket) => {
-  const { playerId, connectToken } = socket.data;
+io.on("connection", (socket) => {
+  const { playerId, connectToken } = socket.data
 
   // Return the connection token
-  
-  // Send connection confirmation with token
-  socket.emit('connection-established', {
-    connectToken: connectToken,
-  });
-  
-  // Create event handler
-  new ClientEventHandler(socket, playerId);
-});
 
+  // Send connection confirmation with token
+  socket.emit("connection-established", {
+    connectToken: connectToken,
+  })
+
+  // Create event handler
+  new ClientEventHandler(socket, playerId)
+})
 
 app.get("/", (_req, res) => {
   res.send("Server is running!")

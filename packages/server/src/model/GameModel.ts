@@ -1,9 +1,9 @@
 // src/Game.ts
 import { Player, PlayerId } from "./Player"
-import { RoundDeck, IRoundCard } from "./decks/RoundDeck"
-import { ActionCardName, ActionDeck, ActionCard } from "./decks/ActionDeck"
+import { BulletDeck, Bullet } from "./decks/Bullets"
+import { TrickName, TrickDeck, Trick } from "./decks/Tricks"
 import { shuffleArray } from "../utils"
-import { ActionCardInput, ActionCardResult } from "@smoke-and-lead/shared/src/ActionCards"
+import { TrickInput, TrickResult } from "@smoke-and-lead/shared"
 import { SocketEventEmitter } from "../events/ServerEventEmitter"
 import { Server } from "socket.io"
 
@@ -16,31 +16,29 @@ export class InvalidActionError extends Error {
 
 export class GameModel extends SocketEventEmitter {
   private hostId: PlayerId
-  private activePlayers: PlayerId[] = [] // Will keep track of the order of players, it will be shuffled on game start
+  private playerOrder: PlayerId[] = [] // Will keep track of the order of players, it will be shuffled on game start
   private spectators: Set<PlayerId> = new Set()
 
+  private isStarted: boolean = false
   private currentTurn: number = 0 // Index of player in activePlayers
   private shooter!: PlayerId // Only assign the shooter after the first turn (if shooter is null)
 
-  private isStarted: boolean = false
-  private isFirstRound: boolean = true
-
-  actionDeck: ActionDeck = new ActionDeck()
-  roundsDeck: RoundDeck = new RoundDeck()
-  actionDiscards: ActionCard[] = []
-  chambers: Map<number, IRoundCard> = new Map()
-  playerHands: Map<PlayerId, Player> = new Map()
+  trickDeck: TrickDeck = new TrickDeck()
+  bulletDeck: BulletDeck = new BulletDeck()
+  trickDiscards: Trick[] = []
+  chambers: Map<number, Bullet> = new Map()
+  players: Map<PlayerId, Player> = new Map()
 
   constructor(io: Server, hostId: PlayerId) {
     super(io)
     this.hostId = hostId
-    this.activePlayers.push(hostId)
+    this.playerOrder.push(hostId)
   }
 
   // Game events
   joinGame(playerId: PlayerId) {
-    if (this.isStarted && this.activePlayers.length < 6) {
-      this.activePlayers.push(playerId)
+    if (this.isStarted && this.playerOrder.length < 6) {
+      this.playerOrder.push(playerId)
       // activePlayerJoined event
     } else {
       this.spectators.add(playerId)
@@ -57,12 +55,12 @@ export class GameModel extends SocketEventEmitter {
   startGame(playerId: PlayerId) {
     this.assertIsHost(playerId)
     this.assertIsStartedState(false)
-    if (this.activePlayers.length != 6) {
+    if (this.playerOrder.length != 6) {
       throw new InvalidActionError("Not enough player's in the lobby.")
     }
 
-    this.activePlayers = shuffleArray(this.activePlayers)
-    this.shooter = this.activePlayers[0]
+    this.playerOrder = shuffleArray(this.playerOrder)
+    this.shooter = this.playerOrder[0]
     this.initPlayerHands()
     this.initChambersDeck()
 
@@ -71,18 +69,18 @@ export class GameModel extends SocketEventEmitter {
 
   // Initialize game state
   private initPlayerHands() {
-    for (let playerId in this.activePlayers) {
+    for (const playerId in this.playerOrder) {
       const player = new Player()
-      for (var _ = 0; _ < 3; _++) {
-        player.giveCard(this.actionDeck.drawCard())
+      for (let _ = 0; _ < 3; _++) {
+        player.giveCard(this.trickDeck.drawCard())
       }
-      this.playerHands.set(playerId, player)
+      this.players.set(playerId, player)
     }
   }
 
   private initChambersDeck() {
     for (let i = 0; i < 6; i++) {
-      this.chambers.set(i, this.roundsDeck.drawCard())
+      this.chambers.set(i, this.bulletDeck.drawCard())
     }
   }
 
@@ -93,13 +91,17 @@ export class GameModel extends SocketEventEmitter {
     if (this.shooter === undefined) {
       this.shooter = playerId
     }
-    this.currentTurn = this.currentTurn + (1 % this.activePlayers.length)
+    this.currentTurn = this.currentTurn + (1 % this.playerOrder.length)
   }
 
-  playCard(playerId: PlayerId, cardName: ActionCardName, cardData: ActionCardInput): ActionCardResult {
+  playCard(
+    playerId: PlayerId,
+    cardName: TrickName,
+    cardData: TrickInput
+  ): TrickResult {
     this.assertIsStartedState(true)
     this.assertYourTurn(playerId)
-    const playerHand = this.playerHands.get(playerId)
+    const playerHand = this.players.get(playerId)
     if (playerHand === undefined) {
       throw new InvalidActionError("You are not in the game!")
     }
@@ -122,7 +124,7 @@ export class GameModel extends SocketEventEmitter {
   }
 
   private assertYourTurn(playerId: PlayerId) {
-    if (playerId !== this.activePlayers[this.currentTurn]) {
+    if (playerId !== this.playerOrder[this.currentTurn]) {
       throw new InvalidActionError("It is not your turn!")
     }
   }

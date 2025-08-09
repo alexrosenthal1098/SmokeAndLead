@@ -7,12 +7,12 @@ export function shuffleArray<T>(array: T[]): T[] {
   return result
 }
 
-const rawActionJson = await import(
-  `./config/acion-deck.${process.env.ACTION_DECK ?? "standard"}.json`
+const trickJson = await import(
+  `./config/trick-deck.${process.env.TRICK_DECK ?? "standard"}.json`
 )
-export const actionDeckConfig: Record<string, number> = JSON.parse(rawActionJson)
+export const trickConfig: Record<string, number> = JSON.parse(trickJson)
 
-const rawRoundJson = await import(
-  `./config/round-deck.${process.env.ROUND_DECK ?? "standard"}.json`
+const bulletJson = await import(
+  `./config/bullet-deck.${process.env.BULLET_DECK ?? "standard"}.json`
 )
-export const roundDeckConfig: Record<string, number> = JSON.parse(rawRoundJson)
+export const bulletConfig: Record<string, number> = JSON.parse(bulletJson)

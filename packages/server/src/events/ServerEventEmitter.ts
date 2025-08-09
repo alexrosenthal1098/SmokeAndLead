@@ -1,4 +1,4 @@
-import { GameEvent } from "@smoke-and-lead/shared/src/Events"
+import { GameEvent } from "@smoke-and-lead/shared"
 import { PlayerId } from "../model/Player"
 import { sessionManager } from "../SessionManager"
 import { GameId } from "../GameManager"
@@ -8,7 +8,7 @@ export abstract class SocketEventEmitter {
   constructor(private io: Server) {}
 
   sendToPlayer(playerId: PlayerId, event: GameEvent): void {
-    let socket = sessionManager.getSession(playerId)?.socket
+    const socket = sessionManager.getSession(playerId)?.socket
     if (!socket) {
       console.error(
         "Game attempted to send event to player without an active session."

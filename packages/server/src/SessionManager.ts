@@ -35,7 +35,7 @@ class SessionManager {
 
     if (!session) {
       // new session
-      let newToken = crypto.randomUUID().toString()
+      const newToken = crypto.randomUUID().toString()
       session = {
         playerId,
         socket,

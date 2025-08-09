@@ -1,22 +1,26 @@
-import { ActionCardInput, ActionCardResult } from "@smoke-and-lead/shared/src/ActionCards"
-import { ActionCardName } from "./decks/ActionDeck"
-import { ActionCard } from "./decks/ActionDeck"
+import { TrickInput, TrickResult } from "@smoke-and-lead/shared"
+import { TrickName } from "./decks/Tricks"
+import { Trick } from "./decks/Tricks"
 import { GameModel, InvalidActionError } from "./GameModel"
 
 export type PlayerId = String
 
 export class Player {
-  private cards: Map<ActionCardName, ActionCard> = new Map()
+  private cards: Map<TrickName, Trick> = new Map()
 
-  giveCard(card: ActionCard) {
+  giveCard(card: Trick) {
     this.cards.set(card.name, card)
   }
 
-  getHand(): ActionCardName[] {
+  getHand(): TrickName[] {
     return Array.from(this.cards.keys())
   }
 
-  playCard(cardName: ActionCardName, game: GameModel, cardData: ActionCardInput): ActionCardResult {
+  playCard(
+    cardName: TrickName,
+    game: GameModel,
+    cardData: TrickInput
+  ): TrickResult {
     const card = this.cards.get(cardName)
     if (card === undefined) {
       throw new InvalidActionError("You do not have this card!")

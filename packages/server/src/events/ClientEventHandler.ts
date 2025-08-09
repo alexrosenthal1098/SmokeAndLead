@@ -2,10 +2,7 @@
 import { Socket } from "socket.io"
 import { gameManager } from "../GameManager"
 import { PlayerId } from "@smoke-and-lead/server/src/model/Player"
-import {
-  ClientEvent,
-  ExtractEventData,
-} from "@smoke-and-lead/shared/src/Events"
+import { ClientEvent, ExtractEventData } from "@smoke-and-lead/shared"
 
 export class ClientEventHandler {
   constructor(private socket: Socket, private playerId: PlayerId) {
@@ -34,7 +31,6 @@ export class ClientEventHandler {
     data: ExtractEventData<ClientEvent, "join-game">
   ) {
     // join a game
-
     // send an event back!
   }
 }

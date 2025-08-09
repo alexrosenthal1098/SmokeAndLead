@@ -7,7 +7,7 @@ export class Deck<TCard extends Object> {
     cardRegistry: Map<string, TCard>,
     deckConfig: Record<string, number>
   ) {
-    for (let cardName of cardRegistry.keys()) {
+    for (const cardName of cardRegistry.keys()) {
       for (let _ = 0; _ < deckConfig[cardName.toString()]; _++) {
         const cardObject = cardRegistry.get(cardName)
         if (cardObject === undefined) {
