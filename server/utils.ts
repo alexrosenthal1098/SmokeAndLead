@@ -12,7 +12,7 @@ const rawActionJson = await import(
 )
 export const actionDeckConfig: Record<string, number> = JSON.parse(rawActionJson)
 
-const rawRoundsJson = await import(
-  `./config/rounds-deck.${process.env.ROUND_DECK ?? "standard"}.json`
+const rawRoundJson = await import(
+  `./config/round-deck.${process.env.ROUND_DECK ?? "standard"}.json`
 )
-export const roundsDeckConfig: Record<string, number> = JSON.parse(rawRoundsJson)
+export const roundDeckConfig: Record<string, number> = JSON.parse(rawRoundJson)

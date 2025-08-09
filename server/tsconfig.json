@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
+    "rootDir": "../",
     "target": "es2020",
     "module": "esnext",
-    "rootDir": "./",
     "outDir": "./dist",
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -10,5 +10,6 @@
     "skipLibCheck": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
-  }
+  },
+  "include": ["./**/*", "../shared/**/*"]
 }

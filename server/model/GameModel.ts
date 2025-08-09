@@ -1,10 +1,8 @@
 // src/Game.ts
 import { EventEmitter } from "events"
 import { Player, PlayerId } from "./Player"
-import { IActionCard } from "./decks/cards/ActionCard"
-import { IRoundCard } from "./decks/cards/RoundCard"
-import { ActionDeck } from "./decks/ActionDeck"
-import { RoundsDeck } from "./decks/RoundsDeck"
+import { RoundDeck, IRoundCard } from "./decks/RoundDeck"
+import { ActionCardName, ActionDeck, IActionCard } from "./decks/ActionDeck"
 import { shuffleArray } from "../utils"
 
 export class InvalidActionError extends Error {
@@ -18,22 +16,19 @@ export class GameModel extends EventEmitter {
   private hostId: PlayerId
   private activePlayers: PlayerId[] = [] // Will keep track of the order of players, it will be shuffled on game start
   private spectators: Set<PlayerId> = new Set()
-  private playerHands: Map<PlayerId, Player> = new Map()
-
-  private actionDeck: ActionDeck = new ActionDeck()
-  private roundsDeck: RoundsDeck = new RoundsDeck()
-  private actionDiscards: IActionCard[] = []
-  private chambers: Map<number, IRoundCard> = new Map()
 
   private currentTurn: number = 0 // Index of player in activePlayers
-  private shooter!: PlayerId
+  private shooter!: PlayerId // Only assign the shooter after the first turn (if shooter is null)
 
   private isStarted: boolean = false
   private isFirstRound: boolean = true
 
-  // "shooter" logic: when a player ends their turn we'll check if they are the shooter and it is not first round
-  // "isFirstRound" logic: when a player ends their turn, if it is the first round we will check whether
-
+  actionDeck: ActionDeck = new ActionDeck()
+  roundsDeck: RoundDeck = new RoundDeck()
+  actionDiscards: IActionCard[] = []
+  chambers: Map<number, IRoundCard> = new Map()
+  playerHands: Map<PlayerId, Player> = new Map()
+  
   constructor(hostId: PlayerId) {
     super()
     this.hostId = hostId
@@ -75,9 +70,11 @@ export class GameModel extends EventEmitter {
   // Initialize game state
   private initPlayerHands() {
     for (let playerId in this.activePlayers) {
+      const player = new Player()
       for (var _ = 0; _ < 3; _++) {
-        this.playerHands.get(playerId)?.giveCard(this.actionDeck.drawCard())
+        player.giveCard(this.actionDeck.drawCard())
       }
+      this.playerHands.set(playerId, player)
     }
   }
 
@@ -91,12 +88,24 @@ export class GameModel extends EventEmitter {
   nextTurn(playerId: PlayerId) {
     this.assertIsStartedState(true)
     this.assertYourTurn(playerId)
+    if (this.shooter === undefined) {
+      this.shooter = playerId
+    }
+    this.currentTurn = this.currentTurn + 1 % this.activePlayers.length
   }
 
-  playCard(playerId: PlayerId, cardName: string, cardData: object) {
+  playCard(
+    playerId: PlayerId,
+    cardName: ActionCardName,
+    cardData: object
+  ): object {
     this.assertIsStartedState(true)
     this.assertYourTurn(playerId)
-    this.playerHands.get(playerId)?.playCard(cardName, this, cardData)
+    const playerHand = this.playerHands.get(playerId)
+    if (playerHand === undefined) {
+      throw new InvalidActionError("You are not in the game!")
+    }
+    return playerHand.playCard(cardName, this, cardData)
   }
 
   // Check game state

@@ -4,5 +4,10 @@
   },
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\""
-  }
+  },
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ]
 }
