@@ -1,3 +1,4 @@
+import { ActionCardInput, ActionCardResult } from "@smoke-and-lead/shared"
 import { ActionCardName } from "./decks/ActionDeck"
 import { IActionCard } from "./decks/ActionDeck"
 import { GameModel, InvalidActionError } from "./GameModel"
@@ -15,11 +16,7 @@ export class Player {
     return Array.from(this.cards.keys())
   }
 
-  playCard(
-    cardName: ActionCardName,
-    game: GameModel,
-    cardData: object
-  ): object {
+  playCard(cardName: ActionCardName, game: GameModel, cardData: ActionCardInput): ActionCardResult {
     const card = this.cards.get(cardName)
     if (card === undefined) {
       throw new InvalidActionError("You do not have this card!")

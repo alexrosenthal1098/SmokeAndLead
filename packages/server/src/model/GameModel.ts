@@ -4,6 +4,7 @@ import { Player, PlayerId } from "./Player"
 import { RoundDeck, IRoundCard } from "./decks/RoundDeck"
 import { ActionCardName, ActionDeck, IActionCard } from "./decks/ActionDeck"
 import { shuffleArray } from "../utils"
+import { ActionCardInput, ActionCardResult } from "@smoke-and-lead/shared"
 
 export class InvalidActionError extends Error {
   constructor(message: string) {
@@ -28,7 +29,7 @@ export class GameModel extends EventEmitter {
   actionDiscards: IActionCard[] = []
   chambers: Map<number, IRoundCard> = new Map()
   playerHands: Map<PlayerId, Player> = new Map()
-  
+
   constructor(hostId: PlayerId) {
     super()
     this.hostId = hostId
@@ -91,14 +92,10 @@ export class GameModel extends EventEmitter {
     if (this.shooter === undefined) {
       this.shooter = playerId
     }
-    this.currentTurn = this.currentTurn + 1 % this.activePlayers.length
+    this.currentTurn = this.currentTurn + (1 % this.activePlayers.length)
   }
 
-  playCard(
-    playerId: PlayerId,
-    cardName: ActionCardName,
-    cardData: object
-  ): object {
+  playCard(playerId: PlayerId, cardName: ActionCardName, cardData: ActionCardInput): ActionCardResult {
     this.assertIsStartedState(true)
     this.assertYourTurn(playerId)
     const playerHand = this.playerHands.get(playerId)

@@ -3,7 +3,10 @@ import { shuffleArray } from "../../utils"
 export class Deck<TCard extends Object> {
   private deck: TCard[] = []
 
-  constructor(cardRegistry: Map<string, TCard>, deckConfig: Record<string, number>) {
+  constructor(
+    cardRegistry: Map<string, TCard>,
+    deckConfig: Record<string, number>
+  ) {
     for (let cardName of cardRegistry.keys()) {
       for (let _ = 0; _ < deckConfig[cardName.toString()]; _++) {
         const cardObject = cardRegistry.get(cardName)

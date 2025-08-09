@@ -1,5 +1,7 @@
-type ActionCardInput = 
+export type ActionCardInput = 
   | { type: 'peek', chamber: number }
+  | { type: 'swap', chamber1: number, chamber2: number }
 
-type ActionCardResult = 
-  | { type: 'peek', round: string }
+export type ActionCardResult = 
+  | { round: string }
+  | { }
