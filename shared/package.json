@@ -1,13 +1,10 @@
 {
-  "name": "shared",
+  "name": "@smoke-and-lead/shared",
   "version": "1.0.0",
-  "description": "",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "tsc --watch"
   },
-  "dependencies": {
-    "zod": "^4.0.16"
-  }
 }
