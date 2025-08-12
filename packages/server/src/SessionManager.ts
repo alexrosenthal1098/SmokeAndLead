@@ -1,18 +1,22 @@
 import { PlayerId } from "@smoke-and-lead/server/src/model/Player"
 import crypto from "crypto"
-import { Socket } from "socket.io"
+import { Server, Socket } from "socket.io"
 import { GameId } from "./GameManager"
 
 type Session = {
   playerId: PlayerId
   socket: Socket
-  room?: GameId // TODO: Add room when applicable
   connectToken: string
+  inLobby: boolean
+  inGame: boolean
+  gameId?: GameId
   lastActive: number
 }
 
 class SessionManager {
   private sessions: Map<PlayerId, Session> = new Map()
+
+  io?: Server
 
   constructor(gracePeriodMs = 30000, cleanupCheckMs = 5000) {
     // Periodically check for expired sessions
@@ -35,11 +39,13 @@ class SessionManager {
 
     if (!session) {
       // new session
-      const newToken = crypto.randomUUID().toString()
+      const connectToken = crypto.randomUUID().toString()
       session = {
         playerId,
         socket,
-        connectToken: newToken,
+        connectToken,
+        inLobby: false,
+        inGame: false,
         lastActive: Date.now(),
       }
       this.sessions.set(playerId, session)
@@ -59,18 +65,24 @@ class SessionManager {
     return session
   }
 
-  updateActivity(playerId: PlayerId) {
+  updateActivity(playerId: PlayerId): boolean {
     const session = this.sessions.get(playerId)
     if (session) {
       session.lastActive = Date.now()
+      return true
     }
+    return false
   }
 
-  getSession(playerId: PlayerId) {
-    return this.sessions.get(playerId)
+  getSession(playerId: PlayerId): Session | undefined {
+    const session = this.sessions.get(playerId)
+    if (session !== undefined) {
+      session.lastActive = Date.now()
+    }
+    return session
   }
 
-  deleteSession(playerId: PlayerId) {
+  deleteSession(playerId: PlayerId): boolean {
     const session = this.sessions.get(playerId)
     if (session) {
       console.log(`[SessionManager] Cleaning up session for ${playerId}`)

@@ -1,12 +1,14 @@
-import { TrickInput, TrickResult } from "@smoke-and-lead/shared"
+import { PlayerInfo, TrickInput, TrickResult } from "@smoke-and-lead/shared"
 import { TrickName } from "./decks/Tricks"
 import { Trick } from "./decks/Tricks"
 import { GameModel, InvalidActionError } from "./GameModel"
 
-export type PlayerId = String
+export type PlayerId = string
 
 export class Player {
   private cards: Map<TrickName, Trick> = new Map()
+
+  constructor (private playerId: string, private chamber: number, private avatarName: string) {}
 
   giveCard(card: Trick) {
     this.cards.set(card.name, card)
@@ -26,5 +28,14 @@ export class Player {
       throw new InvalidActionError("You do not have this card!")
     }
     return card.play(game, cardData)
+  }
+
+  getPublicInfo(): PlayerInfo {
+    return {
+      playerId: this.playerId,
+      cardSize: this.cards.size,
+      orderNumber: this.chamber,
+      avatarName: this.avatarName,
+    }
   }
 }

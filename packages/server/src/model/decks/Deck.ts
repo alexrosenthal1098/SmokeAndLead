@@ -18,6 +18,10 @@ export class Deck<TCard extends Object> {
     }
   }
 
+  size(): number {
+    return this.deck.length
+  }
+
   drawCard(): TCard {
     const card = this.deck.pop()
     if (card === undefined) {
@@ -25,10 +29,6 @@ export class Deck<TCard extends Object> {
       throw new Error("Attempted to draw card from the empty deck.")
     }
     return card
-  }
-
-  isEmpty(): boolean {
-    return this.deck.length == 0
   }
 
   restock(discards: TCard[]) {

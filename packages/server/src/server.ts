@@ -13,6 +13,8 @@ export const io = new Server(server, {
   },
 })
 
+sessionManager.io = io
+
 io.use((socket: Socket, next) => {
   const { playerId, connectToken } = socket.handshake.auth
 
@@ -33,18 +35,22 @@ io.use((socket: Socket, next) => {
   } else {
     socket.data.playerId = playerId
     socket.data.connectToken = session.connectToken
+    socket.data.inLobby = session.inLobby
+    socket.data.inGame = session.inGame
+    socket.data.gameId = session.gameId
     next()
   }
 })
 
 io.on("connection", (socket) => {
-  const { playerId, connectToken } = socket.data
+  const { playerId, connectToken, gameId } = socket.data
 
   // Return the connection token
 
   // Send connection confirmation with token
   socket.emit("connection-established", {
     connectToken: connectToken,
+    gameId: gameId,
   })
 
   // Create event handler
