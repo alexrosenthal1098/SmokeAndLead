@@ -4,25 +4,22 @@ import { PlayerId } from "./model/Player"
 
 export type GameId = string
 
-class GameManager {
-  private games: Map<GameId, GameModel> = new Map()
+class LobbyManager {
   private lobbies: Map<GameId, Lobby> = new Map()
-  private passwords: Map<GameId, string> = new Map() // This can be stored in the Lobby object
 
   // Game management
-  createLobby(hostId: PlayerId, gameId: GameId, password: string): void {
-    this.lobbies.set(gameId, new Lobby(hostId, password))
+  createLobby(hostId: PlayerId, gameId: GameId, password: string): boolean {
+    // Returns whether the lobby was created or not
+    if (this.lobbies.has(gameId)) {
+      return false
+    }
+    this.lobbies.set(gameId, new Lobby(hostId, gameId, password))
+    return true
   }
 
-  getGame(gameId: GameId): GameModel | undefined {
-    return this.games.get(gameId)
+  getLobby(gameId: GameId): Lobby | undefined {
+    return this.lobbies.get(gameId)
   }
-
-  // joinGame(playerId: PlayerId, gameId: GameId, password: string): GameId {
-  //   if (!this.games.has(gameId)) {
-  //     throw new Exception
-  //   }
-  // }
 }
 
-export const gameManager = new GameManager()
+export const gameManager = new LobbyManager()

@@ -1,38 +1,50 @@
 import { TrickInput, TrickResult } from "./Cards"
 
 export type ClientEvent =
-  | { type: "request-game-info"; data: { gameId: string } }
   | { type: "create-lobby"; data: { gameId: string; password: string } }
-  | { type: "join-game"; data: { gameName: string; password: string } }
-  | { type: "play-card"; data: TrickInput }
+  | { type: "join-game"; data: { gameId: string; password: string } }
+  | { type: "request-game-info"; data: { gameId: string } }
+  | { type: "stop-spectating"; data: { gameId: string } }
+  | { type: "leave-lobby"; data: { gameId: string } }
+  | { type: "start-game"; data: { gameId: string } }
+  | { type: "leave-game"; data: { gameId: string } }
 
-export type PlayerInfo = {
+export type PublicPlayerInfo = {
   playerId: string
   cardSize: number
   orderNumber: number
-  avatarName: string
 }
-
+export type PersonalInfo = { hand: string[] }
 export type GameInfo = {
+  latestRoll: number
   currentTurn: string
   shooter: string
-  personalInfo: { hand: string[] } | undefined
+  personalInfo: PersonalInfo | undefined
   trickDeckSize: number
   bulletDeckSize: number
-  playerInfos: PlayerInfo[]
+  playerInfos: PublicPlayerInfo[]
 }
-
+export type LobbyInfo = {
+  host: string
+  allPlayers: [string, string][] // PlayerId, Character
+  numSpectators: number
+}
 export type ServerEvent =
-  | { type: "lobby-created", data: { } }
-
-
-  | { type: "game-ended"; data: { reason: string } }
+  | { type: "error"; data: { reason: string } }
+  | { type: "lobby-created"; data: {} }
+  | { type: "lobby-joined"; data: LobbyInfo }
+  | { type: "player-joined"; data: { player: string; character: string } }
+  | { type: "lobby-spectating"; data: LobbyInfo }
+  | { type: "game-spectating"; data: GameInfo }
+  | { type: "spectator-joined"; data: { player: string } }
+  | { type: "stopped-spectating"; data: {} }
+  | { type: "sectator-left"; data: { player: string } }
+  | { type: "left-lobby"; data: {} }
+  | { type: "player-left"; data: { player: string } }
+  | { type: "game-started"; data: GameInfo } // personalInfo should be undefined
   | { type: "game-info"; data: GameInfo }
-  | { type: "game-joined"; data: {} }
-  | { type: "game-left"; data: {} }
-  | { type: "card-played"; data: TrickResult }
+  | { type: "personal-info"; data: PersonalInfo }
+  | { type: "left-game"; data: {} }
+  | { type: "player-left", data: {}}
 
-export type ExtractEventData<
-  T extends ClientEvent | ServerEvent,
-  U extends T["type"]
-> = Extract<T, { type: U }>["data"]
+export type ExtractEventData<T extends ClientEvent | ServerEvent, U extends T["type"]> = Extract<T, { type: U }>["data"]

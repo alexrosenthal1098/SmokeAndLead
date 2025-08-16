@@ -2,7 +2,7 @@ import express from "express"
 import http from "http"
 import { Server, Socket } from "socket.io"
 import cors from "cors"
-import { ClientEventHandler } from "./events/ClientEventHandler"
+import { ClientEventHandler } from "./ClientEventHandler"
 import { sessionManager } from "./SessionManager"
 
 const app = express()
@@ -25,19 +25,14 @@ io.use((socket: Socket, next) => {
     return next(new Error("Player ID must be between 2 and 20 characters."))
   }
 
-  const session = sessionManager.createOrRestoreSession(
-    socket,
-    playerId,
-    connectToken
-  )
+  const session = sessionManager.createOrRestoreSession(socket, playerId, connectToken)
   if (!session) {
     return next(new Error("Player ID is taken."))
   } else {
     socket.data.playerId = playerId
     socket.data.connectToken = session.connectToken
-    socket.data.inLobby = session.inLobby
-    socket.data.inGame = session.inGame
     socket.data.gameId = session.gameId
+    socket.data.isStarted = session.gameStarted
     next()
   }
 })
@@ -45,16 +40,17 @@ io.use((socket: Socket, next) => {
 io.on("connection", (socket) => {
   const { playerId, connectToken, gameId } = socket.data
 
-  // Return the connection token
+  // Create event handler
+  if (gameId !== undefined) {
+    socket.join(gameId)
+  }
+  new ClientEventHandler(socket, playerId)
 
   // Send connection confirmation with token
   socket.emit("connection-established", {
     connectToken: connectToken,
     gameId: gameId,
   })
-
-  // Create event handler
-  new ClientEventHandler(socket, playerId)
 })
 
 app.get("/", (_req, res) => {

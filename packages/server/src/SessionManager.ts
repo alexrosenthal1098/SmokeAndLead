@@ -1,15 +1,14 @@
 import { PlayerId } from "@smoke-and-lead/server/src/model/Player"
 import crypto from "crypto"
 import { Server, Socket } from "socket.io"
-import { GameId } from "./GameManager"
+import { GameId, gameManager } from "./GameManager"
 
 type Session = {
   playerId: PlayerId
   socket: Socket
   connectToken: string
-  inLobby: boolean
-  inGame: boolean
   gameId?: GameId
+  gameStarted?: boolean
   lastActive: number
 }
 
@@ -18,12 +17,11 @@ class SessionManager {
 
   io?: Server
 
-  constructor(gracePeriodMs = 30000, cleanupCheckMs = 5000) {
+  constructor(gracePeriodMs = 300000, cleanupCheckMs = 5000) {
     // Periodically check for expired sessions
     setInterval(() => {
-      const now = Date.now()
       for (const [playerId, session] of this.sessions) {
-        if (now - session.lastActive > gracePeriodMs) {
+        if (Date.now() - session.lastActive > gracePeriodMs) {
           this.deleteSession(playerId)
         }
       }
@@ -44,8 +42,6 @@ class SessionManager {
         playerId,
         socket,
         connectToken,
-        inLobby: false,
-        inGame: false,
         lastActive: Date.now(),
       }
       this.sessions.set(playerId, session)
@@ -53,7 +49,7 @@ class SessionManager {
       console.log(`New player ${playerId} connected`)
     } else {
       // existing session
-      if (!connectToken || session.connectToken != connectToken) {
+      if (!connectToken || session.connectToken !== connectToken) {
         return undefined
       }
       session.lastActive = Date.now()
@@ -65,13 +61,11 @@ class SessionManager {
     return session
   }
 
-  updateActivity(playerId: PlayerId): boolean {
+  updateActivity(playerId: PlayerId): void {
     const session = this.sessions.get(playerId)
     if (session) {
       session.lastActive = Date.now()
-      return true
     }
-    return false
   }
 
   getSession(playerId: PlayerId): Session | undefined {
@@ -82,13 +76,22 @@ class SessionManager {
     return session
   }
 
-  deleteSession(playerId: PlayerId): boolean {
+  deleteSession(playerId: PlayerId): void {
     const session = this.sessions.get(playerId)
     if (session) {
       console.log(`[SessionManager] Cleaning up session for ${playerId}`)
+      if (session.gameId) {
+        gameManager.getLobby(session.gameId)?.leaveLobby(playerId)
+      }
       this.sessions.delete(playerId)
+    }
+  }
 
-      /// TODO: Game manager stuff, emove player from game
+  updateSessionInfo(playerId: PlayerId, gameId: GameId | undefined , gameStarted: boolean | undefined) {
+    const session = this.sessions.get(playerId)
+    if (session) {
+      session.gameId = gameId
+      session.gameStarted = gameStarted
     }
   }
 }

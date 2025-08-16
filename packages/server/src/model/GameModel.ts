@@ -3,9 +3,7 @@ import { Player, PlayerId } from "./Player"
 import { BulletDeck, Bullet } from "./decks/Bullets"
 import { TrickName, TrickDeck, Trick } from "./decks/Tricks"
 import { shuffleArray } from "../utils"
-import { Character, GameInfo, PlayerInfo, TrickInput, TrickResult } from "@smoke-and-lead/shared"
-import { SocketEventEmitter } from "../events/ServerEventEmitter"
-import { Server } from "socket.io"
+import { GameInfo, PersonalInfo, TrickInput, TrickResult } from "@smoke-and-lead/shared"
 
 export class InvalidActionError extends Error {
   constructor(message: string) {
@@ -14,9 +12,8 @@ export class InvalidActionError extends Error {
   }
 }
 
-export class GameModel extends SocketEventEmitter {
+export class GameModel {
   private playerOrder: PlayerId[]
-  private spectators: Set<PlayerId>
 
   private currentTurn: number = 0 // Index of player in activePlayers
   private shooter!: PlayerId // Only assign the shooter after the first turn (if shooter is null)
@@ -28,45 +25,27 @@ export class GameModel extends SocketEventEmitter {
   chambers: Map<number, Bullet> = new Map()
   players: Map<PlayerId, Player> = new Map()
 
-  constructor(players: [PlayerId, Character][], spectators: Set<PlayerId>) {
-    super()
-    if (players.length != 6) {
+  constructor(players: PlayerId[]) {
+    if (players.length !== 6) {
       throw new Error("Not enough player's in the lobby.")
     }
-    const shuffled = shuffleArray(players)
-    this.playerOrder = shuffled.map(tuple => tuple[0])
-    this.spectators = spectators
+    this.playerOrder = shuffleArray(players)
 
-    this.initPlayerHands(shuffled.map(tuple => tuple[1]))
+    this.initPlayerHands()
     this.initChambers()
   }
 
-  // Game events
-  spectateGame(playerId: PlayerId): void {
-    this.spectators.add(playerId)
-    // broadcast spectator-joined
-    // assign player to room (upstack)
-    // emit game-spectating
-  }
-
-  leaveGame(playerId: PlayerId): void {
-    if (this.spectators.has(playerId)) {
-      this.spectators.delete(playerId)
-      // emit stopped-spectating 
-      // remove socket from room (upstack)
-      // broadcast spectator-left
-    }
-    else if (this.players.has(playerId)) {
+  // General events
+  leaveGame(playerId: PlayerId): boolean {
+    if (this.players.has(playerId)) {
       // This should handle the following things (at least)
       // - Ending the turn if its this player's turn
       // - Marking this player as "dead"
-      // - Removing this player from the playerOrder thing
+      // - Removing this player from playerOrder and players
       // - 
-      
-      // emit left-game
-      // remove socket from room (upstack)
-      // broadcast player-left
+      return true
     }
+    return false
   }
 
   // Mid-game events
@@ -92,22 +71,27 @@ export class GameModel extends SocketEventEmitter {
   }
 
   // retrieving game information
-  getGameInfo(playerId: PlayerId): GameInfo {
-    let callingPlayer = this.players.get(playerId)
+  getGameInfo(playerId?: PlayerId): GameInfo {
     return {
+      latestRoll: this.latestRoll,
       currentTurn: this.playerOrder[this.currentTurn],
       shooter: this.shooter,
-      personalInfo: callingPlayer !== undefined ? { hand: callingPlayer!.getHand() } : undefined,
+      personalInfo: playerId !== undefined ? this.getPersonalInfo(playerId) : undefined,
       trickDeckSize: this.trickDeck.size(),
       bulletDeckSize: this.bulletDeck.size(),
       playerInfos: Array.from(this.players.values(), player => player.getPublicInfo()),
     }
   }
 
+  getPersonalInfo(playerId: PlayerId): PersonalInfo | undefined {
+    let callingPlayer = this.players.get(playerId)
+    return callingPlayer !== undefined ? { hand: callingPlayer!.getHand() } : undefined
+  }
+
     // Initialize game state
-  private initPlayerHands(characters: Character[]) {
+  private initPlayerHands() {
     for (const [i, playerId] of this.playerOrder.entries()) {
-      const player = new Player(playerId, i+1, characters[i])
+      const player = new Player(playerId, i+1)
       for (let _ = 0; _ < 3; _++) {
         player.giveCard(this.trickDeck.drawCard())
       }

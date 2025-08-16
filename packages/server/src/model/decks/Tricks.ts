@@ -18,7 +18,7 @@ export abstract class Trick {
   abstract readonly name: TrickName
 
   play(game: GameModel, cardData: TrickInput): TrickResult {
-    if (cardData.type != this.name) {
+    if (cardData.type !== this.name) {
       throw new Error("Invalid card input given")
     }
 
