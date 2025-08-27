@@ -1,10 +1,11 @@
 // ClientEventHandler.ts
 import { Socket } from "socket.io"
-import { gameManager } from "./GameManager"
+import { GameId, gameManager } from "./GameManager"
 import { sessionManager } from "./SessionManager"
 import { PlayerId } from "@smoke-and-lead/server/src/model/Player"
 import { ClientEvent, ExtractEventData } from "@smoke-and-lead/shared"
 import { io } from "./server"
+import { TrickPlayed, TrickName } from "./model/decks/Tricks/TrickDeck"
 
 function UpdateSessionActivity(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
   const original = descriptor.value
@@ -28,6 +29,8 @@ export class ClientEventHandler {
     this.socket.on("leave-lobby", (data) => this.leaveLobby(data))
     this.socket.on("start-game", (data) => this.startGame(data))
     this.socket.on("leave-game", (data) => this.leaveGame(data))
+    this.socket.on("play-card", (data) => this.playCard(data))
+    this.socket.on("end-turn", (data) => this.endTurn(data))
   }
 
   // Specific event handlers
@@ -36,7 +39,7 @@ export class ClientEventHandler {
   private createLobby(data: ExtractEventData<ClientEvent, "create-lobby">): void {
     if (gameManager.createLobby(this.playerId, data.gameId, data.password)) {
       this.socket.emit("lobby-created")
-          sessionManager.updateSessionInfo(this.playerId, data.gameId, false)
+      sessionManager.updateSessionInfo(this.playerId, data.gameId, false)
     } else {
       this.socket.emit("error", { reason: "Game name taken." })
     }
@@ -49,7 +52,7 @@ export class ClientEventHandler {
       this.socket.emit("error", { reason: "Game name does not exist!" })
     } else {
       try {
-        let isStarted = false;
+        let isStarted = false
         if (lobby.joinLobby(this.playerId, data.password)) {
           this.socket.emit("lobby-joined", lobby.getLobbyInfo())
           this.socket.to(data.gameId).emit("player-joined", { player: this.playerId, character: "None" })
@@ -57,7 +60,7 @@ export class ClientEventHandler {
           if (lobby.isStarted()) {
             const gameInfo = lobby.getGame(this.playerId)?.getGameInfo()
             this.socket.emit("game-spectating", gameInfo)
-            let isStarted = true;
+            let isStarted = true
           } else {
             this.socket.emit("lobby-spectating", lobby.getLobbyInfo())
           }
@@ -104,7 +107,7 @@ export class ClientEventHandler {
     this.socket.to(data.gameId).emit("player-left", { player: this.playerId })
 
     if (leaveResult) this.socket.to(data.gameId).emit("new-host", { host: lobby!.hostId })
-    
+
     sessionManager.updateSessionInfo(this.playerId, undefined, undefined)
   }
 
@@ -116,7 +119,7 @@ export class ClientEventHandler {
         const game = lobby.startGame(this.playerId)
         const gameInfo = game.getGameInfo()
         io.to(data.gameId).emit("game-started", gameInfo)
-        gameInfo.playerInfos.forEach((info) => {
+        gameInfo.playersInfo.forEach((info) => {
           const socket = sessionManager.getSession(info.playerId)?.socket
           if (socket !== undefined) socket.emit("personal-info", game!.getPersonalInfo(info.playerId))
         })
@@ -133,6 +136,48 @@ export class ClientEventHandler {
       this.socket.emit("left-game")
       this.socket.to("player-left")
       this.socket.leave(data.gameId)
+      sessionManager.updateSessionInfo(this.playerId, undefined, undefined)
+    }
+  }
+
+  @UpdateSessionActivity
+  private playCard(data: ExtractEventData<ClientEvent, "play-card">): void {
+    const game = gameManager.getLobby(data.gameId)?.getGame(this.playerId)
+    if (game) {
+      const result = game.playCard(this.playerId, data.cardInput.type, data.cardInput)
+      this.emitTrickPlayedResult(result, data.gameId, data.cardInput.type)
+    }
+  }
+
+  @UpdateSessionActivity
+  private endTurn(data: ExtractEventData<ClientEvent, "end-turn">): void {
+    const game = gameManager.getLobby(data.gameId)?.getGame(this.playerId)
+    if (game) {
+      const result = game.endTurn(this.playerId)
+      if (result) {
+        this.emitTrickPlayedResult(result, data.gameId)
+      }
+      io.to(data.gameId).emit("next-turn", { playerId: game })
+    }
+  }
+
+  private emitTrickPlayedResult(trickPlayed: TrickPlayed, gameId: GameId, cardPlayed?: TrickName): void {
+    if (trickPlayed.final && cardPlayed) {
+      io.to(gameId).emit("card-played", { player: this.playerId, cardName: cardPlayed })
+    }
+
+    for (const event of trickPlayed.personalEvents) {
+      this.socket.emit(event.type, event.data)
+    }
+    for (const event of trickPlayed.publicEvents) {
+      io.to(gameId).emit(event.type, event.data)
+    }
+
+    if (trickPlayed.otherPlayerEvents) {
+      for (const [playerId, event] of trickPlayed.otherPlayerEvents) {
+        const socket = sessionManager.getSession(playerId)?.socket
+        if (socket !== undefined) socket.emit(event.type, event.data)
+      }
     }
   }
 }

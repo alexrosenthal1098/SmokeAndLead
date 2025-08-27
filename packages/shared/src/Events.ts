@@ -8,6 +8,8 @@ export type ClientEvent =
   | { type: "leave-lobby"; data: { gameId: string } }
   | { type: "start-game"; data: { gameId: string } }
   | { type: "leave-game"; data: { gameId: string } }
+  | { type: "play-card"; data: { gameId: string, cardInput: TrickInput } }
+  | { type: "end-turn"; data: { gameId: string } }
 
 export type PublicPlayerInfo = {
   playerId: string
@@ -22,7 +24,8 @@ export type GameInfo = {
   personalInfo: PersonalInfo | undefined
   trickDeckSize: number
   bulletDeckSize: number
-  playerInfos: PublicPlayerInfo[]
+  playersInfo: PublicPlayerInfo[]
+  chambersInfo: Map<number, string> // Chamber number (1-6) to name of the round, can be "hidden" or something
 }
 export type LobbyInfo = {
   host: string
@@ -45,6 +48,7 @@ export type ServerEvent =
   | { type: "game-info"; data: GameInfo }
   | { type: "personal-info"; data: PersonalInfo }
   | { type: "left-game"; data: {} }
-  | { type: "player-left", data: {}}
+  | { type: "player-left", data: {} }
+  | { type: "card-played", data: { player: string, cardName: TrickInput["type"] } }
 
 export type ExtractEventData<T extends ClientEvent | ServerEvent, U extends T["type"]> = Extract<T, { type: U }>["data"]

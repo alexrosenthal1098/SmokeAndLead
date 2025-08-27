@@ -1,29 +1,23 @@
 // src/Game.ts
 import { Player, PlayerId } from "./Player"
-import { BulletDeck, Bullet } from "./decks/Bullets"
-import { TrickName, TrickDeck, Trick } from "./decks/Tricks"
+import { BulletDeck, Bullet } from "./decks/BulletDeck"
+import { TrickName, TrickDeck, Trick, TrickPlayed } from "./decks/Tricks/TrickDeck"
 import { shuffleArray } from "../utils"
 import { GameInfo, PersonalInfo, TrickInput, TrickResult } from "@smoke-and-lead/shared"
-
-export class InvalidActionError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = "InvalidActionError"
-  }
-}
+import { Trigger } from "./decks/Tricks/Trigger"
 
 export class GameModel {
-  private playerOrder: PlayerId[]
-
-  private currentTurn: number = 0 // Index of player in activePlayers
-  private shooter!: PlayerId // Only assign the shooter after the first turn (if shooter is null)
-  private latestRoll: number = 1
-
   trickDeck: TrickDeck = new TrickDeck()
-  bulletDeck: BulletDeck = new BulletDeck()
   trickDiscards: Trick[] = []
+  bulletDeck: BulletDeck = new BulletDeck()
+
   chambers: Map<number, Bullet> = new Map()
   players: Map<PlayerId, Player> = new Map()
+  playerOrder: PlayerId[]
+  currentTurn: number = 0 // Index of player in playerOrder
+
+  shooter!: PlayerId // Only assign the shooter after the first turn (if shooter is null)
+  latestRoll: number = 1
 
   constructor(players: PlayerId[]) {
     if (players.length !== 6) {
@@ -42,32 +36,45 @@ export class GameModel {
       // - Ending the turn if its this player's turn
       // - Marking this player as "dead"
       // - Removing this player from playerOrder and players
-      // - 
       return true
     }
     return false
   }
 
+  killAtChamber(chamber: number): PlayerId | undefined {
+    for (const player of this.players.values()) {
+      if (player.chamber === chamber && player.isAlive) {
+        this.trickDiscards.push(...player.kill())
+        return player.playerId
+      }
+    }
+    return undefined
+  }
+
   // Mid-game events
-  endTurn(playerId: PlayerId) {
+  endTurn(playerId: PlayerId): TrickPlayed | undefined {
     this.assertYourTurn(playerId)
+    let result = undefined
     if (this.shooter === undefined) {
       this.shooter = playerId
     }
+    else if (this.shooter === playerId) {
+      result = new Trigger().play(this, {type: "trigger", data: {}})
+    }
+
+    this.players.get(playerId)!.discardInPlay()
     this.currentTurn = this.currentTurn + (1 % this.playerOrder.length)
+
+    return result
   }
 
-  playCard(
-    playerId: PlayerId,
-    cardName: TrickName,
-    cardData: TrickInput
-  ): TrickResult {
+  playCard(playerId: PlayerId, cardName: TrickName, cardInput: TrickInput): TrickPlayed {
     this.assertYourTurn(playerId)
     const playerHand = this.players.get(playerId)
     if (playerHand === undefined) {
-      throw new InvalidActionError("You are not in the game!")
+      throw new Error("You are not in the game!")
     }
-    return playerHand.playCard(cardName, this, cardData)
+    return playerHand.playCard(cardName, this, cardInput)
   }
 
   // retrieving game information
@@ -79,7 +86,8 @@ export class GameModel {
       personalInfo: playerId !== undefined ? this.getPersonalInfo(playerId) : undefined,
       trickDeckSize: this.trickDeck.size(),
       bulletDeckSize: this.bulletDeck.size(),
-      playerInfos: Array.from(this.players.values(), player => player.getPublicInfo()),
+      playersInfo: Array.from(this.players.values(), (player) => player.getPublicInfo()),
+      chambersInfo: new Map(Array.from(this.chambers.entries(), (entry) => [entry[0], entry[1].getDescription()])),
     }
   }
 
@@ -88,10 +96,10 @@ export class GameModel {
     return callingPlayer !== undefined ? { hand: callingPlayer!.getHand() } : undefined
   }
 
-    // Initialize game state
+  // Initialize game state
   private initPlayerHands() {
     for (const [i, playerId] of this.playerOrder.entries()) {
-      const player = new Player(playerId, i+1)
+      const player = new Player(playerId, i + 1)
       for (let _ = 0; _ < 3; _++) {
         player.giveCard(this.trickDeck.drawCard())
       }
@@ -100,7 +108,7 @@ export class GameModel {
   }
 
   private initChambers() {
-    for (let i = 0; i < 6; i++) {
+    for (let i = 1; i <= 6; i++) {
       this.chambers.set(i, this.bulletDeck.drawCard())
     }
   }
@@ -108,7 +116,7 @@ export class GameModel {
   // Check game state
   private assertYourTurn(playerId: PlayerId) {
     if (playerId !== this.playerOrder[this.currentTurn]) {
-      throw new InvalidActionError("It is not your turn!")
+      throw new Error("It is not your turn!")
     }
   }
 }
