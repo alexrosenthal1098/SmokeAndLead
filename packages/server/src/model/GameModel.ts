@@ -7,6 +7,9 @@ import { GameInfo, PersonalInfo, TrickInput, TrickResult } from "@smoke-and-lead
 import { Trigger } from "./decks/Tricks/Trigger"
 
 export class GameModel {
+  private NUM_CARD_AT_START: number = 3
+  private NUM_DRAW_PER_TURN: number = 2
+
   trickDeck: TrickDeck = new TrickDeck()
   trickDiscards: Trick[] = []
   bulletDeck: BulletDeck = new BulletDeck()
@@ -16,13 +19,15 @@ export class GameModel {
   playerOrder: PlayerId[]
   currentTurn: number = 0 // Index of player in playerOrder
 
-  shooter!: PlayerId // Only assign the shooter after the first turn (if shooter is null)
+  shooter!: PlayerId // Only assign the shooter after the first trigger is played
+  triggeredThisTurn: boolean
   latestRoll: number = 1
 
   constructor(players: PlayerId[]) {
     if (players.length !== 6) {
       throw new Error("Not enough player's in the lobby.")
     }
+    this.triggeredThisTurn = false
     this.playerOrder = shuffleArray(players)
 
     this.initPlayerHands()
@@ -41,31 +46,109 @@ export class GameModel {
     return false
   }
 
+  trigger(): TrickPlayed {
+    const curTurnPlayer = this.playerOrder[this.currentTurn]
+    this.shooter = curTurnPlayer
+    this.triggeredThisTurn = true
+    const chamber = Math.floor(Math.random() * 6) + 1
+    const bullet = this.chambers.get(chamber)!.name
+    const result: TrickPlayed = {
+      personalEvents: [],
+      publicEvents: [],
+      final: true,
+    }
+    result.publicEvents.push({
+      type: "bullet-fired",
+      data: { chamber, bullet },
+    })
+    switch (bullet) {
+      case "bullet":
+        const deadPlayer = this.killAtChamber(chamber)
+        this.chambers.set(chamber, this.bulletDeck.drawCard())
+        if (deadPlayer) {
+          result.publicEvents.push({
+            type: "player-killed",
+            data: { player: deadPlayer },
+          })
+          if (this.playerOrder.length == 1) {
+            // end the game! somebody won
+            return result
+          }
+          else if (deadPlayer == curTurnPlayer) {
+            this.currentTurn -= 1
+            this._endTurnPostTrigger(deadPlayer, result)
+          }
+        }
+        
+        break
+      case "blank":
+        break
+      default:
+        throw new Error("Unkown bullet name.")
+    }
+
+    return result
+  }
+
   killAtChamber(chamber: number): PlayerId | undefined {
     for (const player of this.players.values()) {
       if (player.chamber === chamber && player.isAlive) {
         this.trickDiscards.push(...player.kill())
+        this._removeFromOrder(player.playerId)
         return player.playerId
       }
     }
     return undefined
   }
+  
+ private _removeFromOrder(playerId: string): void {
+    const index = this.playerOrder.indexOf(playerId);
+    this.playerOrder.splice(index, 1)
+
+    if (index < this.currentTurn) {
+      this.currentTurn -= 1;
+    }
+    if (this.currentTurn >= this.playerOrder.length) {
+      this.currentTurn = 0;
+    }
+  }
 
   // Mid-game events
-  endTurn(playerId: PlayerId): TrickPlayed | undefined {
+  endTurn(playerId: PlayerId): TrickPlayed {
     this.assertYourTurn(playerId)
-    let result = undefined
-    if (this.shooter === undefined) {
-      this.shooter = playerId
-    }
-    else if (this.shooter === playerId) {
-      result = new Trigger().play(this, {type: "trigger", data: {}})
+
+    let result
+    if (this.shooter === playerId && !this.triggeredThisTurn) {
+      result = new Trigger().play(this, { type: "trigger", data: {} })
+      if (result.otherPlayerEvents) return result
+    } else {
+      result = {
+        personalEvents: [],
+        publicEvents: [],
+        final: true,
+      }
     }
 
-    this.players.get(playerId)!.discardInPlay()
-    this.currentTurn = this.currentTurn + (1 % this.playerOrder.length)
-
+    this._endTurnPostTrigger(playerId, result)
     return result
+  }
+
+  private _endTurnPostTrigger(playerId: PlayerId, result: TrickPlayed): void {
+    this.players.get(playerId)!.discardInPlay()
+    this.currentTurn = (this.currentTurn + 1) % this.playerOrder.length
+
+    const nextPlayer = this.players.get(this.playerOrder[this.currentTurn])!
+    const cardsDrawn = []
+    let card
+    for (let _ = 0; _ < this.NUM_DRAW_PER_TURN; _++) {
+      card = this.trickDeck.drawCard()
+      nextPlayer.giveCard(card)
+      cardsDrawn.push(card.name)
+    }
+
+    result.otherPlayerEvents = new Map<PlayerId, TrickResult>([[nextPlayer.playerId, { type: "cards-drawn", data: { cardsDrawn } }]])
+    result.publicEvents.push({type: "next-turn", data: {playerId: nextPlayer.playerId}})
+    this.triggeredThisTurn = false
   }
 
   playCard(playerId: PlayerId, cardName: TrickName, cardInput: TrickInput): TrickPlayed {
@@ -100,7 +183,7 @@ export class GameModel {
   private initPlayerHands() {
     for (const [i, playerId] of this.playerOrder.entries()) {
       const player = new Player(playerId, i + 1)
-      for (let _ = 0; _ < 3; _++) {
+      for (let _ = 0; _ < this.NUM_CARD_AT_START; _++) {
         player.giveCard(this.trickDeck.drawCard())
       }
       this.players.set(playerId, player)
@@ -113,7 +196,7 @@ export class GameModel {
     }
   }
 
-  // Check game state
+  // Misc
   private assertYourTurn(playerId: PlayerId) {
     if (playerId !== this.playerOrder[this.currentTurn]) {
       throw new Error("It is not your turn!")

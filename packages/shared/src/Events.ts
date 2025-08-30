@@ -50,5 +50,7 @@ export type ServerEvent =
   | { type: "left-game"; data: {} }
   | { type: "player-left", data: {} }
   | { type: "card-played", data: { player: string, cardName: TrickInput["type"] } }
+  | { type: "next-turn", data: { playerId: string } }
+  | TrickResult
 
 export type ExtractEventData<T extends ClientEvent | ServerEvent, U extends T["type"]> = Extract<T, { type: U }>["data"]

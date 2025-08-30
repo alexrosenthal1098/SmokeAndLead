@@ -5,6 +5,7 @@ import {
   TrickInput,
   TrickResult,
   ExtractTrickInput,
+  ServerEvent,
 } from "@smoke-and-lead/shared"
 import { Peek } from "./Peek"
 import { PlayerId } from "../../Player"
@@ -17,10 +18,10 @@ export class TrickDeck extends Deck<Trick> {
 }
 
 export type TrickPlayed = {
-  personalEvents: TrickResult[],
-  publicEvents: TrickResult[],
+  personalEvents: ServerEvent[],
+  publicEvents: ServerEvent[],
   final: boolean,
-  otherPlayerEvents?: Map<PlayerId, TrickResult>,
+  otherPlayerEvents?: Map<PlayerId, ServerEvent>,
 }
 
 export abstract class Trick {

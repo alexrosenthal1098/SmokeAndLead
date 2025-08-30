@@ -157,7 +157,6 @@ export class ClientEventHandler {
       if (result) {
         this.emitTrickPlayedResult(result, data.gameId)
       }
-      io.to(data.gameId).emit("next-turn", { playerId: game })
     }
   }
 
@@ -169,6 +168,7 @@ export class ClientEventHandler {
     for (const event of trickPlayed.personalEvents) {
       this.socket.emit(event.type, event.data)
     }
+
     for (const event of trickPlayed.publicEvents) {
       io.to(gameId).emit(event.type, event.data)
     }
