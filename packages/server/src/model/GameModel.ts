@@ -1,10 +1,11 @@
 // src/Game.ts
 import { Player, PlayerId } from "./Player"
 import { BulletDeck, Bullet } from "./decks/BulletDeck"
-import { TrickName, TrickDeck, Trick, TrickPlayed } from "./decks/Tricks/TrickDeck"
+import { TrickName, TrickDeck} from "./decks/Tricks/TrickDeck"
 import { shuffleArray } from "../utils"
 import { GameInfo, PersonalInfo, TrickInput, TrickResult } from "@smoke-and-lead/shared"
 import { Trigger } from "./decks/Tricks/Trigger"
+import { Trick, TrickPlayed } from "./decks/Tricks/Trick"
 
 export class GameModel {
   private NUM_CARD_AT_START: number = 3

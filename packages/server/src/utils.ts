@@ -8,11 +8,11 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 const trickJson = await import(
-  `./config/trick-deck.${process.env.TRICK_DECK ?? "standard"}.json`
+  `./deck-configs/trick-deck.${process.env.TRICK_DECK ?? "standard"}.json`
 )
-export const trickConfig: Record<string, number> = JSON.parse(trickJson)
+export const trickConfig: Record<string, number> = trickJson.default
 
 const bulletJson = await import(
-  `./config/bullet-deck.${process.env.BULLET_DECK ?? "standard"}.json`
+  `./deck-configs/bullet-deck.${process.env.BULLET_DECK ?? "standard"}.json`
 )
-export const bulletConfig: Record<string, number> = JSON.parse(bulletJson)
+export const bulletConfig: Record<string, number> = bulletJson.default

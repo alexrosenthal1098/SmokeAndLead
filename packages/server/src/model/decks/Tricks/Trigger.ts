@@ -1,6 +1,6 @@
-import { ExtractTrickInput, ServerEvent, TrickResult } from "@smoke-and-lead/shared"
+import { ExtractTrickInput } from "@smoke-and-lead/shared"
 import { GameModel } from "../../GameModel"
-import { Trick, TrickPlayed } from "./TrickDeck"
+import { Trick, TrickPlayed } from "./Trick"
 
 export class Trigger extends Trick {
   readonly name = "trigger"

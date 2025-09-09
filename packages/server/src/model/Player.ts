@@ -1,7 +1,7 @@
 import { PublicPlayerInfo, TrickInput, TrickResult } from "@smoke-and-lead/shared"
-import { TrickName, TrickPlayed } from "./decks/Tricks/TrickDeck"
-import { Trick } from "./decks/Tricks/TrickDeck"
+import { TrickName } from "./decks/Tricks/TrickDeck"
 import { GameModel } from "./GameModel"
+import { Trick, TrickPlayed } from "./decks/Tricks/Trick"
 
 export type PlayerId = string
 

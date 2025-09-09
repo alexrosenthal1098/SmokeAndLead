@@ -1,4 +1,4 @@
 {
-    "peek": 10,
-    "shuffles": 3
+    "bullet": 10,
+    "blank": 20
 }

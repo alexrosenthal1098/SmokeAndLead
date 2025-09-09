@@ -5,10 +5,13 @@
     "packages/*"
   ],
   "devDependencies": {
+    "npm-run-all": "^4.1.5",
     "typescript": "^5.9.2"
   },
   "scripts": {
     "build": "npm run build --workspaces",
-    "dev": "npm run dev --workspaces --if-present"
+    "dev": "npm-run-all --parallel dev:*",
+    "dev:server": "npm run dev --workspace=@smoke-and-lead/server",
+    "dev:client": "npm run dev --workspace=@smoke-and-lead/client"
   }
 }

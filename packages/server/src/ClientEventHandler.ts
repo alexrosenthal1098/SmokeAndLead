@@ -4,8 +4,9 @@ import { GameId, gameManager } from "./GameManager"
 import { sessionManager } from "./SessionManager"
 import { PlayerId } from "@smoke-and-lead/server/src/model/Player"
 import { ClientEvent, ExtractEventData } from "@smoke-and-lead/shared"
-import { io } from "./server"
-import { TrickPlayed, TrickName } from "./model/decks/Tricks/TrickDeck"
+import { io } from "."
+import { TrickName } from "./model/decks/Tricks/TrickDeck"
+import { TrickPlayed } from "./model/decks/Tricks/Trick"
 
 function UpdateSessionActivity(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
   const original = descriptor.value
